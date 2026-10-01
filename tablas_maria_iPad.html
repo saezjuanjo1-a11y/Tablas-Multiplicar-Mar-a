@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Las Tablas de María</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes confetti{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.pop{animation:pop .5s ease-out}.pulse{animation:pulse 1.4s infinite}
+.confetti{position:fixed;top:-15px;width:10px;height:18px;z-index:100;animation:confetti 2.8s linear forwards}
+</style>
+
+<style>
+/* iPad / touch fallback: essential layout does not depend on Tailwind */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;min-height:100%;-webkit-text-size-adjust:100%;touch-action:manipulation}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input{font:inherit;-webkit-appearance:none}
+button{cursor:pointer;touch-action:manipulation}
+input{font-size:22px}
+@media (max-width: 820px){
+  body{padding:12px!important;align-items:flex-start!important}
+  #startScreen,#nameScreen,#turnScreen,#gameScreen{width:100%!important;max-width:620px!important;margin:12px auto!important}
+  h1{line-height:1.08}
+  #startScreen h1{font-size:clamp(32px,8vw,46px)!important}
+  #gameScreen header h1{font-size:clamp(30px,7vw,44px)!important}
+  section{width:100%}
+  #multiplication{font-size:clamp(54px,14vw,76px)!important;line-height:1.1}
+  #answer{min-height:68px!important;font-size:34px!important}
+  #checkButton{min-height:62px!important;font-size:20px!important}
+  #backHome{min-height:52px!important}
+  #summaryModal>div,#competitionResult>div,#progressModal>div{max-height:92vh;overflow:auto}
+}
+@media (max-width:520px){
+  body{padding:8px!important}
+  .grid.sm\:grid-cols-2{grid-template-columns:1fr!important}
+  #startScreen .bg-white,#nameScreen .bg-white,#turnScreen .bg-white{padding:20px!important}
+  #gameScreen .p-7{padding:18px!important}
+  #gameScreen .sm\:p-10{padding:18px!important}
+  #multiplication{margin-bottom:22px!important}
+  #summaryModal>div,#competitionResult>div,#progressModal>div{padding:20px!important;border-radius:24px!important}
+}
+@media (orientation:landscape) and (max-height:600px){
+  body{align-items:flex-start!important}
+  #gameScreen header{margin-bottom:8px!important}
+  #gameScreen header .text-5xl{font-size:30px!important}
+  #gameScreen section .p-7,#gameScreen section .sm\:p-10{padding:12px!important}
+  #multiplication{font-size:48px!important;margin-bottom:12px!important}
+  #answer{min-height:52px!important}
+  #checkButton{min-height:52px!important;padding:10px!important}
+}
+</style>
+<script>
+/* iPad: ensure viewport exists even when opened by a file provider */
+(function(){
+  var m=document.querySelector('meta[name="viewport"]');
+  if(!m){
+    m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);
+  }
+  m.content='width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1';
+})();
+</script>
+
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
+<div id="celebration" class="pointer-events-none"></div>
+
+<!-- INICIO -->
+<div id="startScreen" class="w-full max-w-lg">
+  <div class="text-center text-white mb-6">
+    <div class="text-6xl mb-2">🧠✨</div>
+    <h1 class="text-4xl sm:text-5xl font-black">Las Tablas de María</h1>
+    <p class="mt-2 text-lg text-white/90">¡Aprende jugando y mejora cada día!</p>
+  </div>
+  <div class="bg-white rounded-[2rem] shadow-2xl p-7">
+    <h2 class="text-2xl font-black text-gray-800 text-center">¿Cómo quieres jugar?</h2>
+    <div class="grid sm:grid-cols-2 gap-4 mt-7">
+      <button id="soloBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-6 active:scale-95 transition">
+        <div class="text-4xl">🙋‍♀️</div><div class="font-black text-xl mt-2">Jugar sola</div>
+        <div class="text-sm text-white/80 mt-1">Continúa tu progreso</div>
+      </button>
+      <button id="competitionBtn" class="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl p-6 active:scale-95 transition">
+        <div class="text-4xl">🏆</div><div class="font-black text-xl mt-2">Competición</div>
+        <div class="text-sm text-white/80 mt-1">Desafía a otra persona</div>
+      </button>
+    </div>
+    <button id="progressBtn" class="w-full mt-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl">
+      📈 Ver progresión de María
+    </button>
+    <div class="mt-4 bg-gray-50 rounded-2xl p-4 text-sm text-gray-600">
+      💾 Los resultados de María se guardan automáticamente en este navegador.
+    </div>
+  </div>
+</div>
+
+<!-- NOMBRE -->
+<div id="nameScreen" class="hidden w-full max-w-lg">
+  <div class="text-center text-white mb-6"><div class="text-6xl">🏆</div><h1 class="text-4xl font-black">Nueva competición</h1></div>
+  <div class="bg-white rounded-[2rem] shadow-2xl p-7">
+    <label class="block text-gray-700 font-bold mb-2">Nombre del otro participante</label>
+    <input id="opponentName" maxlength="30" placeholder="Por ejemplo: Papá"
+      class="w-full border-4 border-gray-200 rounded-2xl p-4 text-xl outline-none focus:border-pink-500">
+    <button id="startCompetition" class="w-full mt-5 bg-pink-500 hover:bg-pink-600 text-white font-black text-xl py-4 rounded-2xl">Continuar →</button>
+    <button id="backFromName" class="w-full mt-3 text-gray-500 font-bold py-3">← Volver</button>
+  </div>
+</div>
+
+<!-- PANTALLA DE TURNO -->
+<div id="turnScreen" class="hidden w-full max-w-lg">
+  <div class="bg-white rounded-[2rem] shadow-2xl p-8 text-center">
+    <div id="turnIcon" class="text-7xl">🙋‍♀️</div>
+    <div id="turnLabel" class="text-sm uppercase tracking-widest font-black text-indigo-500 mt-3">Jugador 1</div>
+    <h1 id="turnTitle" class="text-4xl font-black text-gray-800 mt-2">María</h1>
+    <p id="turnInstruction" class="text-gray-500 mt-3 text-lg">Cuando estés preparada, pulsa el botón para empezar.</p>
+    <button id="startTurnBtn" class="w-full mt-7 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl py-5 rounded-2xl pulse">
+      EMPEZAR 🚀
+    </button>
+  </div>
+</div>
+
+<!-- JUEGO -->
+<main id="gameScreen" class="hidden w-full max-w-xl">
+<header class="text-center text-white mb-5">
+  <div class="text-5xl mb-1">🧠✨</div>
+  <h1 class="text-4xl sm:text-5xl font-black">Las Tablas de María</h1>
+  <p id="modeLabel" class="mt-2 text-white/90"></p>
+</header>
+<section class="bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+  <div class="grid grid-cols-3 bg-gray-50 border-b text-center">
+    <div class="p-3"><div class="text-xs uppercase text-gray-500">Nivel</div><div id="level" class="font-black text-lg text-purple-600">1 · Principiante</div></div>
+    <div class="p-3 border-x"><div class="text-xs uppercase text-gray-500">Ronda</div><div class="font-black text-lg text-indigo-600"><span id="roundNumber">1</span>/10</div></div>
+    <div class="p-3"><div class="text-xs uppercase text-gray-500">Puntos</div><div id="points" class="font-black text-lg text-amber-500">0</div></div>
+  </div>
+  <div class="p-7 sm:p-10">
+    <div class="flex justify-between mb-5"><span id="streak" class="font-bold text-orange-500">🔥 Racha: 0</span><span id="timerText" class="font-black text-red-500">6.0 s</span></div>
+    <div class="h-3 bg-gray-200 rounded-full overflow-hidden mb-8"><div id="timerBar" class="h-full bg-green-500 transition-all duration-100" style="width:100%"></div></div>
+    <p class="text-center text-gray-500 text-lg mb-3">¿Cuánto es?</p>
+    <div id="multiplication" class="text-center text-6xl sm:text-7xl font-black text-gray-800 mb-8">5 × 7</div>
+    <form id="form">
+      <input id="answer" type="number" inputmode="numeric" autocomplete="off" placeholder="?"
+        class="w-full text-center text-4xl font-black border-4 border-gray-200 rounded-2xl py-4 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
+      <button id="checkButton" class="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xl py-4 rounded-2xl">¡COMPROBAR! 🚀</button>
+    </form>
+    <div id="feedback" class="hidden mt-5 rounded-2xl p-4 text-center font-black text-lg"></div>
+  </div>
+</section>
+<div class="mt-4 grid grid-cols-3 gap-3 text-center text-white">
+  <div class="bg-white/15 rounded-xl p-3"><div class="text-xs opacity-80">Aciertos</div><div id="correct" class="text-2xl font-black">0</div></div>
+  <div class="bg-white/15 rounded-xl p-3"><div class="text-xs opacity-80">Errores</div><div id="wrong" class="text-2xl font-black">0</div></div>
+  <div class="bg-white/15 rounded-xl p-3"><div class="text-xs opacity-80">Mejor nivel</div><div id="bestLevel" class="text-2xl font-black">1</div></div>
+</div>
+<button id="backHome" class="w-full mt-4 bg-white/20 hover:bg-white/30 text-white font-bold py-3 rounded-xl">↻ Volver al inicio</button>
+</main>
+
+<!-- RESUMEN -->
+<div id="summaryModal" class="hidden fixed inset-0 bg-black/65 backdrop-blur-sm items-center justify-center p-4 z-50">
+<div class="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-7 text-center pop">
+  <div id="summaryEmoji" class="text-6xl">🏆</div><h2 class="text-3xl font-black text-gray-800 mt-2">¡Ronda terminada!</h2>
+  <p class="text-gray-500 mt-1">Este es tu resultado:</p>
+  <div class="grid grid-cols-2 gap-3 mt-6">
+    <div class="bg-green-50 rounded-2xl p-4"><div class="text-sm text-green-700">Aciertos</div><div id="summaryCorrect" class="text-3xl font-black text-green-600">0/10</div></div>
+    <div class="bg-amber-50 rounded-2xl p-4"><div class="text-sm text-amber-700">Puntos</div><div id="summaryPoints" class="text-3xl font-black text-amber-500">0</div></div>
+  </div>
+  <div class="bg-indigo-50 rounded-2xl p-4 mt-3"><div class="text-sm text-indigo-700">Tiempo medio</div><div id="summaryTime" class="text-2xl font-black text-indigo-600">0.0 s</div></div>
+  <div id="difficultySummary" class="bg-purple-50 rounded-2xl p-4 mt-3 text-sm text-purple-700"></div>
+  <div id="levelMessage" class="mt-4 text-lg font-black text-purple-600"></div>
+  <div class="mt-6"><p id="continueQuestion" class="font-bold text-gray-700 mb-3">¿María quiere seguir practicando?</p>
+    <div class="grid grid-cols-2 gap-3"><button id="continueYes" class="bg-green-500 text-white font-black py-4 rounded-2xl">¡SÍ! 💪</button><button id="continueNo" class="bg-gray-200 text-gray-700 font-black py-4 rounded-2xl">Terminar 👋</button></div>
+  </div>
+</div>
+</div>
+
+<!-- PROGRESIÓN -->
+<div id="progressModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+<div class="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto p-7">
+  <div class="flex justify-between items-center"><h2 class="text-3xl font-black text-gray-800">📈 Progresión de María</h2><button id="closeProgress" class="text-gray-400 text-2xl">✕</button></div>
+  <div id="progressContent" class="mt-6"></div>
+  <button id="clearProgress" class="w-full mt-5 bg-red-50 text-red-600 font-bold py-3 rounded-xl">Borrar historial</button>
+</div>
+</div>
+
+<!-- RESULTADO COMPETICIÓN -->
+<div id="competitionResult" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+<div class="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full p-7 text-center pop">
+  <div class="text-6xl">🏆</div><h2 class="text-3xl font-black text-gray-800 mt-2">¡Competición terminada!</h2><p id="winnerText" class="text-xl font-black text-purple-600 mt-3"></p>
+  <div class="grid sm:grid-cols-2 gap-4 mt-6">
+    <div class="bg-indigo-50 rounded-2xl p-5"><div id="compNameA" class="font-black text-lg"></div><div id="compAccuracyA" class="text-2xl font-black text-green-600 mt-2"></div><div id="compTimeA" class="text-gray-600"></div><div id="compScoreA" class="text-xl font-black text-amber-500 mt-2"></div></div>
+    <div class="bg-pink-50 rounded-2xl p-5"><div id="compNameB" class="font-black text-lg"></div><div id="compAccuracyB" class="text-2xl font-black text-green-600 mt-2"></div><div id="compTimeB" class="text-gray-600"></div><div id="compScoreB" class="text-xl font-black text-amber-500 mt-2"></div></div>
+  </div>
+  <p class="text-xs text-gray-400 mt-5">Puntuación = 90% aciertos + 10% velocidad relativa.</p>
+  <button id="newGame" class="w-full mt-5 bg-indigo-600 text-white font-black py-4 rounded-2xl">Nueva partida</button>
+</div>
+</div>
+
+<script>
+(() => {
+const MAX_TIME=6, SAVE_KEY="tablasMariaProgressV4";
+const LEVEL_NAMES=["Principiante","Aprendiz","Explorador","Rápido","Ágil","Experto Junior","Maestro","Gran Maestro","Leyenda","Experto"];
+let mode="solo",playerNames=["María",""],activePlayer=0,competitionPlayers=[];
+let a,b,startTime,timerInterval,locked=false;
+let round=0,totalCorrect=0,totalWrong=0,totalPoints=0,streak=0,level=1,bestLevel=1;
+let roundCorrect=0,roundPoints=0,roundTimes=[],currentBlock=[],currentIndex=0,errorsForNextBlock=[];
+
+const $=id=>document.getElementById(id);
+const startScreen=$("startScreen"),nameScreen=$("nameScreen"),turnScreen=$("turnScreen"),gameScreen=$("gameScreen");
+const multiplication=$("multiplication"),answer=$("answer"),form=$("form"),feedback=$("feedback");
+const timerText=$("timerText"),timerBar=$("timerBar"),correctEl=$("correct"),wrongEl=$("wrong"),pointsEl=$("points");
+const roundNumber=$("roundNumber"),streakEl=$("streak"),levelEl=$("level"),bestLevelEl=$("bestLevel");
+
+function defaultProgress(){return {history:[],totalCorrect:0,totalWrong:0,totalPoints:0,level:1,bestLevel:1}}
+function loadProgress(){try{return {...defaultProgress(),...(JSON.parse(localStorage.getItem(SAVE_KEY))||{})}}catch(e){return defaultProgress()}}
+function saveProgress(data){localStorage.setItem(SAVE_KEY,JSON.stringify(data))}
+function updatePersistentTotals(){
+  const p=loadProgress();
+  p.totalCorrect=totalCorrect;p.totalWrong=totalWrong;p.totalPoints=totalPoints;p.level=level;p.bestLevel=bestLevel;
+  saveProgress(p);
+}
+function loadMaria(){
+  const p=loadProgress();
+  totalCorrect=p.totalCorrect||0;totalWrong=p.totalWrong||0;totalPoints=p.totalPoints||0;level=p.level||1;bestLevel=p.bestLevel||level;
+  bestLevelEl.textContent=bestLevel;updateUI();
+}
+
+let audioCtx=null;
+function beep(f,d,t="sine",v=.08,delay=0){try{audioCtx=audioCtx||(window.AudioContext||window.webkitAudioContext)&&new (window.AudioContext||window.webkitAudioContext)();if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.001,audioCtx.currentTime+delay);g.gain.exponentialRampToValueAtTime(v,audioCtx.currentTime+delay+.01);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+delay+d);o.connect(g);g.connect(audioCtx.destination);o.start(audioCtx.currentTime+delay);o.stop(audioCtx.currentTime+delay+d+.02)}catch(e){}}
+function correctSound(){beep(660,.12);beep(880,.18,"sine",.08,.1)} function wrongSound(){beep(180,.2,"sawtooth",.05)}
+function levelUpSound(){[523,659,784,1047].forEach((f,i)=>beep(f,.18,"sine",.09,i*.12))}
+function celebrate(){levelUpSound();for(let i=0;i<70;i++){const c=document.createElement("div");c.className="confetti";c.style.left=Math.random()*100+"vw";c.style.animationDelay=Math.random()*.8+"s";c.style.background=["#facc15","#22c55e","#3b82f6","#ec4899","#f97316","#a855f7"][Math.floor(Math.random()*6)];$("celebration").appendChild(c);setTimeout(()=>c.remove(),3500)}}
+
+$("soloBtn").onclick=()=>{mode="solo";startScreen.classList.add("hidden");gameScreen.classList.remove("hidden");$("modeLabel").textContent="🙋‍♀️ Práctica individual · progreso guardado";resetSession();loadMaria();makeBlock();newQuestion()};
+$("competitionBtn").onclick=()=>{startScreen.classList.add("hidden");nameScreen.classList.remove("hidden");$("opponentName").focus()};
+$("backFromName").onclick=()=>{nameScreen.classList.add("hidden");startScreen.classList.remove("hidden")};
+$("startCompetition").onclick=()=>{
+ const n=$("opponentName").value.trim();if(!n){$("opponentName").focus();return}
+ mode="competition";playerNames=["María",n];competitionPlayers=[newCompPlayer("María"),newCompPlayer(n)];activePlayer=0;
+ nameScreen.classList.add("hidden");resetSession();showTurnScreen();
+};
+$("opponentName").addEventListener("keydown",e=>{if(e.key==="Enter")$("startCompetition").click()});
+
+function newCompPlayer(name){return{name,correct:0,wrong:0,times:[],points:0}}
+function showTurnScreen(){
+ gameScreen.classList.add("hidden");turnScreen.classList.remove("hidden");
+ const name=playerNames[activePlayer];
+ $("turnIcon").textContent=activePlayer===0?"🙋‍♀️":"🧑‍🚀";
+ $("turnLabel").textContent=`Jugador ${activePlayer+1} de 2`;
+ $("turnTitle").textContent=name;
+ $("turnInstruction").textContent=activePlayer===0?"María, cuando estés preparada pulsa el botón.":"Ahora es el turno de "+name+". María ya ha terminado. Pulsa para empezar.";
+ $("startTurnBtn").textContent=`EMPEZAR TURNO DE ${name.toUpperCase()} 🚀`;
+}
+$("startTurnBtn").onclick=()=>{turnScreen.classList.add("hidden");gameScreen.classList.remove("hidden");$("modeLabel").textContent=mode==="competition"?`🏆 Turno de ${playerNames[activePlayer]}`:"";resetSession();makeBlock();newQuestion()};
+
+function qkey(x,y){return x+"x"+y}
+function makeBlock(){
+ const pool=[];
+ errorsForNextBlock.forEach(q=>{if(!pool.some(p=>qkey(p.a,p.b)===qkey(q.a,q.b)))pool.push(q)});
+ const candidates=[];for(let x=1;x<=10;x++)for(let y=1;y<=10;y++)if(!pool.some(p=>qkey(p.a,p.b)===qkey(x,y)))candidates.push({a:x,b:y});
+ while(pool.length<10&&candidates.length){const i=Math.floor(Math.random()*candidates.length);pool.push(candidates.splice(i,1)[0])}
+ currentBlock=pool;currentIndex=0;errorsForNextBlock=[];
+}
+function newQuestion(){
+ if(currentIndex>=currentBlock.length)makeBlock();
+ const q=currentBlock[currentIndex++];a=q.a;b=q.b;multiplication.textContent=`${a} × ${b}`;
+ answer.value="";answer.disabled=false;$("checkButton").disabled=false;feedback.className="hidden mt-5 rounded-2xl p-4 text-center font-black text-lg";updateUI();startTimer();answer.focus();
+}
+function startTimer(){
+ clearInterval(timerInterval);startTime=performance.now();timerBar.style.width="100%";timerBar.className="h-full bg-green-500 transition-all duration-100";
+ timerInterval=setInterval(()=>{const e=(performance.now()-startTime)/1000,r=Math.max(0,MAX_TIME-e);timerText.textContent=r.toFixed(1)+" s";timerBar.style.width=r/MAX_TIME*100+"%";if(r<=2)timerBar.className="h-full bg-red-500 transition-all duration-100";else if(r<=4)timerBar.className="h-full bg-yellow-500 transition-all duration-100";if(e>=MAX_TIME)submitAnswer(true)},50)
+}
+function stopTimer(){clearInterval(timerInterval);return Math.min(MAX_TIME,(performance.now()-startTime)/1000)}
+function pointsForTime(s){return Math.max(1,Math.round(100-(s/MAX_TIME)*99))}
+
+form.onsubmit=e=>{e.preventDefault();submitAnswer(false)}
+function submitAnswer(timeout){
+ if(locked)return;locked=true;const seconds=stopTimer();answer.disabled=true;$("checkButton").disabled=true;
+ const solution=a*b,value=Number(answer.value),ok=!timeout&&answer.value.trim()!==""&&value===solution;
+ if(ok){const pts=pointsForTime(seconds);totalCorrect++;roundCorrect++;roundPoints+=pts;roundTimes.push(seconds);totalPoints+=pts;streak++;if(mode==="competition")recordComp(true,seconds,pts);correctSound();showFeedback(true,solution,pts,seconds)}
+ else{totalWrong++;streak=0;errorsForNextBlock.push({a,b});if(mode==="competition")recordComp(false,seconds,0);wrongSound();showFeedback(false,solution,0,seconds)}
+ updateUI();if(mode==="solo")updatePersistentTotals();round++;
+ setTimeout(()=>{locked=false;if(round%10===0)finishBlock();else newQuestion()},850)
+}
+function recordComp(ok,s,pts){const p=competitionPlayers[activePlayer];if(ok)p.correct++;else p.wrong++;p.times.push(s);p.points+=pts}
+function showFeedback(ok,solution,pts,s){feedback.className="mt-5 rounded-2xl p-4 text-center font-black text-lg "+(ok?"bg-green-100 text-green-700":"bg-red-100 text-red-700");feedback.textContent=ok?`🎉 ¡Correcto! +${pts} puntos · ${s.toFixed(1)} s`:`❌ ${s>=MAX_TIME?"¡Se acabó el tiempo!":"Incorrecto."} La respuesta era ${solution}.`}
+
+function difficultyKey(){return qkey(a,b)}
+function updateDifficultyStats(ok,seconds){
+ const p=loadProgress();p.difficulty=p.difficulty||{};
+ const k=difficultyKey(),d=p.difficulty[k]||{seen:0,correct:0,slow:0,avgTime:0,score:0};
+ d.seen++;if(ok)d.correct++;if(seconds>=4)d.slow++;d.avgTime=((d.avgTime*(d.seen-1))+seconds)/d.seen;
+ // Score alto = difícil. Los fallos pesan mucho; las respuestas lentas también.
+ d.score=Math.min(100,Math.max(0,(1-d.correct/d.seen)*75+(d.avgTime/6)*25));
+ p.difficulty[k]=d;saveProgress(p)
+}
+function difficultyScore(q){
+ const p=loadProgress(),d=p.difficulty?.[qkey(q.a,q.b)];
+ if(!d||d.seen<1)return 20;
+ return d.score;
+}
+function makeSoloBlockAdvanced(){
+ const p=loadProgress(),pool=[];
+ const all=[];for(let x=1;x<=10;x++)for(let y=1;y<=10;y++)all.push({a:x,b:y});
+ // Prioridad: errores/tiempos altos conocidos. Se mezclan algunas nuevas para seguir aprendiendo.
+ all.sort((x,y)=>difficultyScore(y)-difficultyScore(x));
+ const hardKnown=all.filter(q=>{const d=p.difficulty?.[qkey(q.a,q.b)];return d&&d.seen>=1}).slice(0,7);
+ hardKnown.sort(()=>Math.random()-.5);
+ hardKnown.slice(0,7).forEach(q=>pool.push(q));
+ const rest=all.filter(q=>!pool.some(z=>qkey(z.a,z.b)===qkey(q.a,q.b)));
+ rest.sort(()=>Math.random()-.5);while(pool.length<10&&rest.length)pool.push(rest.shift());
+ // Errores inmediatos del bloque anterior siempre tienen prioridad.
+ const combined=[];errorsForNextBlock.forEach(q=>{if(!combined.some(z=>qkey(z.a,z.b)===qkey(q.a,q.b)))combined.push(q)});
+ pool.forEach(q=>{if(combined.length<10&&!combined.some(z=>qkey(z.a,z.b)===qkey(q.a,q.b)))combined.push(q)});
+ currentBlock=combined;currentIndex=0;errorsForNextBlock=[];
+}
+const originalMakeBlock=makeBlock;
+makeBlock=function(){if(mode==="solo")makeSoloBlockAdvanced();else originalMakeBlock()}
+
+const originalSubmit=submitAnswer;
+submitAnswer=function(timeout){
+ if(locked)return;locked=true;const seconds=stopTimer();answer.disabled=true;$("checkButton").disabled=true;
+ const solution=a*b,value=Number(answer.value),ok=!timeout&&answer.value.trim()!==""&&value===solution;
+ if(mode==="solo")updateDifficultyStats(ok,seconds);
+ if(ok){const pts=pointsForTime(seconds);totalCorrect++;roundCorrect++;roundPoints+=pts;roundTimes.push(seconds);totalPoints+=pts;streak++;if(mode==="competition")recordComp(true,seconds,pts);correctSound();showFeedback(true,solution,pts,seconds)}
+ else{totalWrong++;streak=0;errorsForNextBlock.push({a,b});if(mode==="competition")recordComp(false,seconds,0);wrongSound();showFeedback(false,solution,0,seconds)}
+ updateUI();if(mode==="solo")updatePersistentTotals();round++;
+ setTimeout(()=>{locked=false;if(round%10===0)finishBlock();else newQuestion()},850)
+};
+
+function calculateLevel(){
+ const acc=roundCorrect/10,avg=roundTimes.length?roundTimes.reduce((x,y)=>x+y,0)/roundTimes.length:6;
+ const avgPoints=roundPoints/10;
+ const hardCount=roundTimes.filter((t,i)=>t>=4).length;
+ // Experto: 100% + media <4s + al menos 5 multiplicaciones difíciles según historial.
+ const p=loadProgress(),hardQuestions=new Set();
+ Object.entries(p.difficulty||{}).forEach(([k,d])=>{if(d.seen>=2&&d.score>=45)hardQuestions.add(k)});
+ const hardInRound=currentBlock.filter(q=>hardQuestions.has(qkey(q.a,q.b))).length;
+ if(acc===1&&avg<4&&hardInRound>=5)return 10;
+ const score=acc*60+avgPoints*.40;
+ if(score>=91)return 9;if(score>=82)return 8;if(score>=73)return 7;if(score>=64)return 6;if(score>=55)return 5;if(score>=46)return 4;if(score>=37)return 3;if(score>=28)return 2;return 1
+}
+function showSoloSummary(){
+ const avg=roundTimes.length?roundTimes.reduce((x,y)=>x+y,0)/roundTimes.length:6,old=level,nl=calculateLevel();
+ if(nl>old){level=nl;bestLevel=Math.max(bestLevel,level);levelUpSound();celebrate()}
+ const p=loadProgress(),hardKnown=Object.values(p.difficulty||{}).filter(d=>d.seen>=2&&d.score>=45).length;
+ $("summaryEmoji").textContent=nl>old?"🚀":roundCorrect===10?"🏆":roundCorrect>=7?"🎉":"💪";
+ $("summaryCorrect").textContent=`${roundCorrect}/10`;$("summaryPoints").textContent=roundPoints;$("summaryTime").textContent=avg.toFixed(1)+" s";
+ $("difficultySummary").innerHTML=`🧩 <b>${hardKnown}</b> multiplicaciones identificadas como difíciles para María.<br><span class="text-xs">Las preguntas que falla o responde lentamente aparecen más a menudo.</span>`;
+ $("levelMessage").textContent=nl>old?`¡SUBES AL NIVEL ${level}: ${LEVEL_NAMES[level-1]}! 🎉`:`Nivel ${level} · ${LEVEL_NAMES[level-1]}`;
+ saveRoundHistory(avg);updatePersistentTotals();summaryModal.classList.remove("hidden");summaryModal.classList.add("flex")
+}
+function saveRoundHistory(avg){
+ const p=loadProgress();p.history=p.history||[];p.history.push({date:new Date().toISOString(),correct:roundCorrect,points:roundPoints,avgTime:avg,level,accuracy:roundCorrect*10});if(p.history.length>50)p.history=p.history.slice(-50);saveProgress(p)
+}
+function finishBlock(){
+ if(mode==="solo"){showSoloSummary();return}
+ if(activePlayer===0){activePlayer=1;round=0;totalCorrect=0;totalWrong=0;totalPoints=0;streak=0;roundCorrect=0;roundPoints=0;roundTimes=[];errorsForNextBlock=[];showTurnScreen()}
+ else showCompetitionResult()
+}
+$("continueYes").onclick=()=>{summaryModal.classList.add("hidden");summaryModal.classList.remove("flex");roundCorrect=0;roundPoints=0;roundTimes=[];roundNumber.textContent="1";makeBlock();newQuestion()}
+$("continueNo").onclick=()=>{summaryModal.classList.add("hidden");summaryModal.classList.remove("flex");gameScreen.classList.add("hidden");startScreen.classList.remove("hidden")};
+
+function compScore(p){const acc=p.correct/10,avg=p.times.reduce((x,y)=>x+y,0)/10,speed=Math.max(0,1-avg/6);return acc*90+speed*10}
+function showCompetitionResult(){
+ clearInterval(timerInterval);gameScreen.classList.add("hidden");const p1=competitionPlayers[0],p2=competitionPlayers[1],s1=compScore(p1),s2=compScore(p2);
+ $("compNameA").textContent=p1.name;$("compNameB").textContent=p2.name;$("compAccuracyA").textContent=`${p1.correct}/10 aciertos`;$("compAccuracyB").textContent=`${p2.correct}/10 aciertos`;
+ $("compTimeA").textContent=`Tiempo medio: ${(p1.times.reduce((x,y)=>x+y,0)/10).toFixed(2)} s`;$("compTimeB").textContent=`Tiempo medio: ${(p2.times.reduce((x,y)=>x+y,0)/10).toFixed(2)} s`;
+ $("compScoreA").textContent=`Puntuación: ${s1.toFixed(2)}`;$("compScoreB").textContent=`Puntuación: ${s2.toFixed(2)}`;
+ $("winnerText").textContent=s1===s2?"🤝 ¡Empate!":s1>s2?`🏆 ¡Gana ${p1.name}!`:`🏆 ¡Gana ${p2.name}!`;$("competitionResult").classList.remove("hidden");$("competitionResult").classList.add("flex");celebrate()
+}
+$("newGame").onclick=()=>{$("competitionResult").classList.add("hidden");$("competitionResult").classList.remove("flex");startScreen.classList.remove("hidden")};
+
+function resetSession(){clearInterval(timerInterval);round=0;totalCorrect=0;totalWrong=0;totalPoints=0;streak=0;roundCorrect=0;roundPoints=0;roundTimes=[];errorsForNextBlock=[];currentBlock=[];currentIndex=0;locked=false;updateUI()}
+function updateUI(){correctEl.textContent=totalCorrect;wrongEl.textContent=totalWrong;pointsEl.textContent=totalPoints;streakEl.textContent="🔥 Racha: "+streak;roundNumber.textContent=(round%10)+1;levelEl.textContent=`${level} · ${LEVEL_NAMES[level-1]}`;bestLevelEl.textContent=bestLevel}
+$("backHome").onclick=()=>{clearInterval(timerInterval);gameScreen.classList.add("hidden");startScreen.classList.remove("hidden")};
+
+// -------- Progresión --------
+function renderProgress(){
+ const p=loadProgress(),h=p.history||[];
+ if(!h.length){$("progressContent").innerHTML=`<div class="text-center text-gray-500 py-10">Todavía no hay partidas guardadas.<br><span class="text-sm">¡Juega una ronda y aquí aparecerá tu evolución!</span></div>`;return}
+ const last=h.slice(-10),maxPts=Math.max(...h.map(x=>x.points),1);
+ let rows=last.map((x,i)=>`<div class="grid grid-cols-5 gap-2 items-center py-3 border-b text-sm"><div>#${h.length-last.length+i+1}</div><div class="font-bold">${x.accuracy}%</div><div class="text-amber-500 font-bold">${x.points}</div><div>${x.avgTime.toFixed(1)} s</div><div class="text-purple-600 font-bold">N${x.level}</div></div>`).join("");
+ const best=h.reduce((a,x)=>x.points>a.points?x:a,h[0]);
+ $("progressContent").innerHTML=`
+ <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  <div class="bg-green-50 rounded-xl p-4 text-center"><div class="text-xs text-green-700">Aciertos totales</div><div class="text-2xl font-black">${p.totalCorrect||0}</div></div>
+  <div class="bg-amber-50 rounded-xl p-4 text-center"><div class="text-xs text-amber-700">Puntos totales</div><div class="text-2xl font-black">${p.totalPoints||0}</div></div>
+  <div class="bg-purple-50 rounded-xl p-4 text-center"><div class="text-xs text-purple-700">Nivel</div><div class="text-2xl font-black">${p.level||1}</div></div>
+  <div class="bg-blue-50 rounded-xl p-4 text-center"><div class="text-xs text-blue-700">Rondas</div><div class="text-2xl font-black">${h.length}</div></div>
+ </div>
+ <h3 class="font-black text-xl mt-7">Últimas rondas</h3>
+ <div class="grid grid-cols-5 gap-2 mt-3 bg-gray-100 p-2 rounded-lg text-xs font-bold"><div>Ronda</div><div>Aciertos</div><div>Puntos</div><div>Tiempo</div><div>Nivel</div></div>
+ ${rows}
+ <div class="mt-5 bg-indigo-50 rounded-xl p-4 text-sm">🏅 Mejor ronda: <b>${best.points} puntos</b> · ${best.accuracy}% aciertos · ${best.avgTime.toFixed(1)} s · Nivel ${best.level}</div>`;
+}
+$("progressBtn").onclick=()=>{$("progressModal").classList.remove("hidden");$("progressModal").classList.add("flex");renderProgress()}
+$("closeProgress").onclick=()=>{$("progressModal").classList.add("hidden");$("progressModal").classList.remove("flex")}
+$("clearProgress").onclick=()=>{if(confirm("¿Seguro que quieres borrar todo el historial de María?")){localStorage.removeItem(SAVE_KEY);renderProgress()}}
+
+})();
+</script>
+
+<script>
+document.addEventListener('gesturestart',function(e){e.preventDefault()},{passive:false});
+document.addEventListener('touchend',function(e){
+  if(e.target && e.target.tagName==='BUTTON') e.target.style.webkitTapHighlightColor='transparent';
+},{passive:true});
+</script>
+
+</body>
+</html>
